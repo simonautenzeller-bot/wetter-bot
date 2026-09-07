@@ -17,42 +17,49 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg:#1b1712;
-    --panel:#241f18;
-    --panel-2:#2c261d;
-    --border:#3a3227;
-    --paper:#f3ede1;
-    --muted:#a89a85;
-    --copper:#c98a4b;
-    --teal:#4f9c93;
-    --rose:#cc6677;
-    --good:#7fb37a;
-    --warn:#e0a83e;
-    --bad:#d3697a;
+    --bg:#0f141b;
+    --panel:#171f29;
+    --panel-2:#1d2733;
+    --border:#2b3644;
+    --paper:#edf1f5;
+    --muted:#8b98a7;
+    --accent:#5b8cff;
+    --teal:#3fb8ac;
+    --rose:#e8607a;
+    --good:#3ddc84;
+    --warn:#f5a623;
+    --bad:#ef4565;
+    --storm:#a06bff;
     --radius:18px;
     --font-display:'Space Grotesk', system-ui, sans-serif;
     --font-body:'Inter', system-ui, sans-serif;
   }
   html[data-theme="light"]{
-    --bg:#f4efe4;
+    --bg:#f2f5f8;
     --panel:#ffffff;
-    --panel-2:#f4efe2;
-    --border:#e1d6c2;
-    --paper:#211c14;
-    --muted:#8a7a63;
-    --copper:#a9672a;
-    --teal:#2f7d74;
-    --rose:#b1435a;
-    --good:#3f7a45;
-    --warn:#a8781f;
-    --bad:#b1435a;
+    --panel-2:#eaeff4;
+    --border:#dde3ea;
+    --paper:#161c23;
+    --muted:#5c6a78;
+    --accent:#2f5fd6;
+    --teal:#1f8f82;
+    --rose:#c23855;
+    --good:#1f9d55;
+    --warn:#b5750f;
+    --bad:#c23855;
+    --storm:#7a3fe0;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0; padding:0; background:var(--bg); color:var(--paper); font-family:var(--font-body); transition:background .2s, color .2s;}
   body{padding-bottom:48px;}
   h1,h2,h3{font-family:var(--font-display); margin:0;}
   button{font-family:var(--font-body); cursor:pointer;}
-  ::selection{background:var(--copper); color:var(--bg);}
+  a,button,input,[tabindex]{color-scheme:inherit;}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+  ::selection{background:var(--accent); color:#fff;}
 
   .app-header{
     display:flex; align-items:center; justify-content:space-between;
@@ -94,11 +101,20 @@
   .gauge-label{font-size:12px; color:var(--muted);}
   .gauge-value{font-family:var(--font-display); font-size:16px; font-weight:700;}
 
-  .storm-row{
-    margin-top:12px; padding:10px 12px; border-radius:12px; font-size:12.5px;
-    background:rgba(224,168,62,0.14); border:1px solid rgba(224,168,62,0.4); color:var(--paper);
+  .storm-banner{
+    margin:0 16px 12px; padding:14px 16px; border-radius:14px; font-size:14px; font-weight:600;
+    background:rgba(160,107,255,0.16); border:1.5px solid var(--storm); color:var(--paper);
+    display:flex; gap:10px; align-items:center;
   }
-  .storm-row.high{background:rgba(211,105,122,0.16); border-color:rgba(211,105,122,0.45);}
+  .storm-banner .storm-icon{font-size:20px; flex-shrink:0;}
+  .storm-banner.high{
+    background:rgba(160,107,255,0.24); border-color:var(--storm);
+    animation:storm-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes storm-pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(160,107,255,0.35);}
+    50%{box-shadow:0 0 0 6px rgba(160,107,255,0);}
+  }
 
   .daytabs{display:flex; gap:8px; overflow-x:auto; padding:0 16px 12px; scrollbar-width:none;}
   .daytabs::-webkit-scrollbar{display:none;}
@@ -139,7 +155,7 @@
   .radar-markers{position:absolute; inset:0;}
   .radar-marker{position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center;}
   .radar-marker .dot{width:9px; height:9px; border-radius:50%; background:var(--teal); border:2px solid var(--paper); box-shadow:0 0 0 1px rgba(0,0,0,.4);}
-  .radar-marker.current .dot{background:var(--copper); width:11px; height:11px;}
+  .radar-marker.current .dot{background:var(--accent); width:11px; height:11px;}
   .radar-marker .label{font-size:9.5px; background:rgba(13,20,32,0.85); color:var(--paper); padding:2px 6px;
     border-radius:6px; margin-bottom:3px; white-space:nowrap; font-weight:600;}
   .radar-marker:not(.current) .label{font-weight:400; opacity:.85;}
@@ -153,8 +169,8 @@
   .radar-slider{flex:1; -webkit-appearance:none; appearance:none; height:4px; border-radius:99px;
     background:var(--border); outline:none;}
   .radar-slider::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:16px; height:16px;
-    border-radius:50%; background:var(--copper); border:2px solid var(--paper); cursor:pointer;}
-  .radar-slider::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--copper);
+    border-radius:50%; background:var(--accent); border:2px solid var(--paper); cursor:pointer;}
+  .radar-slider::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--accent);
     border:2px solid var(--paper); cursor:pointer;}
 
   .footer-note{color:var(--muted); font-size:10px; text-align:center; margin:18px 32px 0; line-height:1.5;}
@@ -171,6 +187,9 @@
   }
   .modal-handle{width:36px; height:4px; background:var(--border); border-radius:99px; margin:0 auto 16px;}
   .modal h2{font-size:18px; margin-bottom:12px;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .modal-head h2{margin-bottom:0;}
+  .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;}
   .search-input{
     width:100%; background:var(--bg); border:1px solid var(--border); color:var(--paper);
     border-radius:12px; padding:12px 14px; font-size:15px; margin-bottom:10px;
@@ -186,7 +205,7 @@
     display:flex; justify-content:space-between; align-items:center; padding:10px 12px;
     background:var(--bg); border:1px solid var(--border); border-radius:10px; font-size:14px;
   }
-  .fav-item.current{border-color:var(--copper); background:rgba(201,138,75,0.12);}
+  .fav-item.current{border-color:var(--accent); background:rgba(91,140,255,0.12);}
   .fav-item button{background:none; border:none; color:var(--muted); font-size:16px; padding:0 4px;}
   .fav-name{flex:1; text-align:left; background:none; border:none; color:var(--paper); font-size:14px; padding:0;}
 
@@ -196,21 +215,22 @@
 <body>
 
 <div class="app-header">
-  <button class="loc-btn" id="locBtn">
+  <button class="loc-btn" id="locBtn" aria-label="Ort wechseln">
     <div>
       <div class="loc-eyebrow">Modellvergleich</div>
       <div class="loc-name" id="locName">–</div>
     </div>
   </button>
   <div style="display:flex; gap:8px;">
-    <button class="icon-btn" id="themeToggle" title="Hell/Dunkel umschalten">🌙</button>
-    <button class="icon-btn" id="refreshBtn" title="Aktualisieren">⟳</button>
-    <button class="icon-btn" id="openLocModal" title="Ort wechseln">📍</button>
+    <button class="icon-btn" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">🌙</button>
+    <button class="icon-btn" id="refreshBtn" aria-label="Aktualisieren" title="Aktualisieren">⟳</button>
+    <button class="icon-btn" id="openLocModal" aria-label="Ort wechseln" title="Ort wechseln">📍</button>
   </div>
 </div>
 
-<div id="statusLine" class="status-line"></div>
-<div id="warnArea"></div>
+<div id="statusLine" class="status-line" role="status" aria-live="polite"></div>
+<div id="warnArea" aria-live="polite"></div>
+<div id="stormBanner" class="storm-banner" style="display:none;" role="alert"></div>
 
 <div id="heroCard" class="card" style="display:none;">
   <div class="hero">
@@ -227,13 +247,12 @@
     </div>
   </div>
   <div class="gauge-wrap">
-    <svg id="gaugeSvg" width="64" height="40" viewBox="0 0 64 40"></svg>
+    <svg id="gaugeSvg" width="64" height="40" viewBox="0 0 64 40" role="img" aria-label="Modell-Übereinstimmung"></svg>
     <div>
       <div class="gauge-label" id="gaugeLabel">Modell-Übereinstimmung</div>
       <div class="gauge-value" id="gaugeValue">–</div>
     </div>
   </div>
-  <div id="stormRow" class="storm-row" style="display:none;"></div>
 </div>
 
 <div id="rainSoonCard" class="card" style="display:none;">
@@ -263,14 +282,14 @@
     </div>
   </div>
   <div class="radar-zoom-controls">
-    <button class="icon-btn" id="radarZoomOut" title="Rauszoomen">–</button>
-    <button class="icon-btn" id="radarZoomReset" title="Ansicht zurücksetzen">⤾</button>
-    <button class="icon-btn" id="radarZoomIn" title="Reinzoomen">+</button>
+    <button class="icon-btn" id="radarZoomOut" aria-label="Rauszoomen" title="Rauszoomen">–</button>
+    <button class="icon-btn" id="radarZoomReset" aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen">⤾</button>
+    <button class="icon-btn" id="radarZoomIn" aria-label="Reinzoomen" title="Reinzoomen">+</button>
   </div>
   <div class="radar-time" id="radarTime"></div>
   <div class="radar-controls">
-    <button class="icon-btn" id="radarPlayBtn" title="Abspielen">▶</button>
-    <input type="range" id="radarSlider" class="radar-slider" min="0" max="0" value="0" step="1">
+    <button class="icon-btn" id="radarPlayBtn" aria-label="Abspielen" title="Abspielen">▶</button>
+    <input type="range" id="radarSlider" class="radar-slider" min="0" max="0" value="0" step="1" aria-label="Zeitpunkt im Regenradar">
   </div>
 </div>
 
@@ -282,16 +301,20 @@
 
 <div class="footer-note">
   Daten: Open-Meteo (DWD ICON, NOAA GFS, ECMWF IFS) &amp; Bright Sky/DWD (Radar, Warnungen) ·
-  Höchst-/Tiefstwerte = Mittelwert der drei Modelle · v2.0
+  Höchst-/Tiefstwerte = Mittelwert der drei Modelle · v2.1
 </div>
 
 <!-- Standort-Modal -->
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-handle"></div>
-    <h2>Ort wählen</h2>
+    <div class="modal-head">
+      <h2 id="modalTitle">Ort wählen</h2>
+      <button class="icon-btn" id="modalClose" aria-label="Schließen" title="Schließen">✕</button>
+    </div>
+    <label class="sr-only" for="searchInput">Ort suchen</label>
     <input type="text" class="search-input" id="searchInput" placeholder="Ort suchen, z. B. München …">
-    <div class="search-results" id="searchResults"></div>
+    <div class="search-results" id="searchResults" aria-live="polite"></div>
     <h2>Gespeicherte Orte</h2>
     <div class="fav-list" id="favList"></div>
   </div>
@@ -299,7 +322,7 @@
 
 <script>
 // ---------- Konfiguration ----------
-const APP_VERSION = "v2.0";
+const APP_VERSION = "v2.1";
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
@@ -401,7 +424,7 @@ async function fetchForecast(loc) {
 // vermutlich weil nicht jedes Modell jede Variable liefert.
 async function fetchExtras(loc) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}` +
-    `&current=wind_speed_10m,wind_gusts_10m,apparent_temperature` +
+    `&current=wind_speed_10m,wind_gusts_10m,apparent_temperature,uv_index` +
     `&hourly=cape` +
     `&daily=uv_index_max` +
     `&timezone=Europe%2FBerlin&forecast_days=2&wind_speed_unit=kmh`;
@@ -449,13 +472,14 @@ async function geocode(query) {
 let hourlyRows = [];
 let dailyRows = [];
 let dayIdx = 0;
-let extras = { wind: null, gust: null, uvMax: null, capeHourly: [] };
+let extras = { wind: null, gust: null, uv: null, uvMax: null, capeHourly: [] };
 
 function processExtras(raw) {
-  if (!raw) { extras = { wind: null, gust: null, uvMax: null, capeHourly: [] }; return; }
+  if (!raw) { extras = { wind: null, gust: null, uv: null, uvMax: null, capeHourly: [] }; return; }
   extras.wind = raw.current?.wind_speed_10m ?? null;
   extras.gust = raw.current?.wind_gusts_10m ?? null;
   extras.feels = raw.current?.apparent_temperature ?? null;
+  extras.uv = raw.current?.uv_index ?? null;
   extras.uvMax = raw.daily?.uv_index_max?.[0] ?? null;
   extras.capeHourly = (raw.hourly?.time || []).map((t, i) => ({ time: t, cape: raw.hourly.cape?.[i] }));
 }
@@ -528,7 +552,9 @@ function renderHero() {
   document.getElementById("heroFeels").textContent = extras.feels != null ? Math.round(extras.feels) + "°" : "–";
   document.getElementById("heroWind").textContent =
     extras.wind != null ? Math.round(extras.wind) + " km/h" + (extras.gust != null && extras.gust > extras.wind + 10 ? " (Böen " + Math.round(extras.gust) + ")" : "") : "–";
-  document.getElementById("heroUV").textContent = extras.uvMax != null ? extras.uvMax.toFixed(1) : "–";
+  const heroUVEl = document.getElementById("heroUV");
+  heroUVEl.textContent = extras.uv != null ? extras.uv.toFixed(1) : "–";
+  heroUVEl.title = extras.uvMax != null ? `Tagesmaximum: ${extras.uvMax.toFixed(1)}` : "";
   if (today) {
     document.getElementById("heroSun").textContent =
       (today.sunrise ? fmtTime(today.sunrise) : "–") + " / " + (today.sunset ? fmtTime(today.sunset) : "–");
@@ -565,7 +591,7 @@ function drawGauge(spread, color) {
 }
 
 function renderStormRow() {
-  const el = document.getElementById("stormRow");
+  const el = document.getElementById("stormBanner");
   const now = Date.now();
   const upcoming = extras.capeHourly.filter(r => {
     const t = new Date(r.time).getTime();
@@ -580,14 +606,14 @@ function renderStormRow() {
   const maxCape = upcoming.length ? Math.max(...upcoming.map(r => r.cape ?? 0)) : 0;
 
   if (thunderHour || maxCape >= 1000) {
-    el.className = "storm-row" + (thunderHour || maxCape >= 1800 ? " high" : "");
+    el.className = "storm-banner" + (thunderHour || maxCape >= 1800 ? " high" : "");
     const when = thunderHour ? fmtHour(thunderHour.time) + " Uhr" : "in den nächsten Stunden";
-    el.textContent = `⚡ Gewitterpotenzial: ${maxCape >= 1800 || thunderHour ? "erhöht" : "möglich"} (${when}, CAPE bis ${Math.round(maxCape)} J/kg)`;
-    el.style.display = "block";
+    el.innerHTML = `<span class="storm-icon" aria-hidden="true">⚡</span><span>Gewitterpotenzial ${maxCape >= 1800 || thunderHour ? "erhöht" : "möglich"} (${when}, CAPE bis ${Math.round(maxCape)} J/kg)</span>`;
+    el.style.display = "flex";
   } else if (maxCape >= 400) {
-    el.className = "storm-row";
-    el.textContent = `Geringes Gewitterpotenzial in den nächsten 6 Std. (CAPE bis ${Math.round(maxCape)} J/kg)`;
-    el.style.display = "block";
+    el.className = "storm-banner";
+    el.innerHTML = `<span class="storm-icon" aria-hidden="true">⚡</span><span>Geringes Gewitterpotenzial in den nächsten 6 Std. (CAPE bis ${Math.round(maxCape)} J/kg)</span>`;
+    el.style.display = "flex";
   } else {
     el.style.display = "none";
   }
@@ -1192,15 +1218,21 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
 function openModal() {
   renderFavList();
   document.getElementById("modalOverlay").classList.add("open");
+  document.getElementById("searchInput").focus();
 }
 function closeModal() {
   document.getElementById("modalOverlay").classList.remove("open");
   document.getElementById("searchInput").value = "";
   document.getElementById("searchResults").innerHTML = "";
+  document.getElementById("openLocModal").focus();
 }
 document.getElementById("openLocModal").onclick = openModal;
 document.getElementById("locBtn").onclick = openModal;
+document.getElementById("modalClose").onclick = closeModal;
 document.getElementById("modalOverlay").onclick = (e) => { if (e.target.id === "modalOverlay") closeModal(); };
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && document.getElementById("modalOverlay").classList.contains("open")) closeModal();
+});
 
 // ---------- Laden ----------
 async function loadAll() {
