@@ -22,7 +22,7 @@
     --panel-2:#1d2733;
     --border:#2b3644;
     --paper:#edf1f5;
-    --muted:#8b98a7;
+    --muted:#9ab0c1;
     --accent:#5b8cff;
     --teal:#3fb8ac;
     --rose:#e8607a;
@@ -40,8 +40,8 @@
     --panel-2:#eaeff4;
     --border:#dde3ea;
     --paper:#161c23;
-    --muted:#5c6a78;
-    --accent:#2f5fd6;
+    --muted:#4e5d6c;
+    --accent:#1e50cf;
     --teal:#1f8f82;
     --rose:#c23855;
     --good:#1f9d55;
@@ -114,6 +114,30 @@
   @keyframes storm-pulse{
     0%,100%{box-shadow:0 0 0 0 rgba(160,107,255,0.35);}
     50%{box-shadow:0 0 0 6px rgba(160,107,255,0);}
+  }
+
+  .error-banner{
+    margin:0 16px 14px; padding:14px 16px; border-radius:var(--radius);
+    background:rgba(239,69,101,0.14); border:1.5px solid var(--bad); color:var(--paper);
+    display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13.5px;
+  }
+  .error-content{display:flex; align-items:center; gap:10px;}
+  .error-icon{font-size:18px;}
+  .retry-btn{
+    background:var(--bad); color:#fff; border:none; border-radius:10px;
+    padding:8px 14px; font-size:12px; font-weight:600; white-space:nowrap; transition:opacity .15s;
+  }
+  .retry-btn:hover{opacity:0.9;}
+
+  .skeleton-box{
+    background:linear-gradient(90deg, var(--panel-2) 25%, var(--border) 50%, var(--panel-2) 75%);
+    background-size:200% 100%;
+    animation:skeleton-shimmer 1.5s infinite ease-in-out;
+    border-radius:8px;
+  }
+  @keyframes skeleton-shimmer{
+    0%{background-position:200% 0;}
+    100%{background-position:-200% 0;}
   }
 
   .daytabs{display:flex; gap:8px; overflow-x:auto; padding:0 16px 12px; scrollbar-width:none;}
@@ -229,8 +253,31 @@
 </div>
 
 <div id="statusLine" class="status-line" role="status" aria-live="polite"></div>
+<div id="errorBanner" class="error-banner" style="display:none;" role="alert">
+  <div class="error-content">
+    <span class="error-icon" aria-hidden="true">⚠️</span>
+    <span id="errorMessage">Wetterdaten konnten nicht geladen werden.</span>
+  </div>
+  <button id="retryBtn" class="retry-btn">Erneut versuchen</button>
+</div>
 <div id="warnArea" aria-live="polite"></div>
 <div id="stormBanner" class="storm-banner" style="display:none;" role="alert"></div>
+
+<!-- Skeleton Loading Placeholder -->
+<div id="skeletonWrap" class="card" aria-label="Lade Wetterdaten" aria-busy="true">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div class="skeleton-box" style="width:110px; height:48px;"></div>
+      <div class="skeleton-box" style="width:140px; height:16px;"></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+      <div class="skeleton-box" style="width:90px; height:14px;"></div>
+      <div class="skeleton-box" style="width:100px; height:14px;"></div>
+      <div class="skeleton-box" style="width:80px; height:14px;"></div>
+    </div>
+  </div>
+  <div class="skeleton-box" style="width:100%; height:120px; margin-top:12px;"></div>
+</div>
 
 <div id="heroCard" class="card" style="display:none;">
   <div class="hero">
@@ -257,25 +304,12 @@
 
 <div id="rainSoonCard" class="card" style="display:none;">
   <div class="card-title">Nächste 2 Stunden <span class="card-sub" id="rainSoonSub">Regenradar</span></div>
-  <canvas id="rainSoonChart" height="90"></canvas>
-</div>
-
-<div id="daytabs" class="daytabs"></div>
-
-<div id="chartCard" class="card" style="display:none;">
-  <div class="card-title">Temperaturverlauf <span class="card-sub">Fläche = Streubreite der Modelle</span></div>
-  <canvas id="tempChart" height="180"></canvas>
-  <div class="legend" id="legend"></div>
-</div>
-
-<div id="precipCard" class="card" style="display:none;">
-  <div class="card-title">Regenwahrscheinlichkeit <span class="card-sub">Tagesmaximum</span></div>
-  <div id="precipRows"></div>
+  <canvas id="rainSoonChart" height="90" aria-label="Niederschlag der nächsten 2 Stunden" role="img"></canvas>
 </div>
 
 <div id="radarCard" class="card" style="display:none;">
   <div class="card-title">Regenradar <span class="card-sub" id="radarSubtitle">DWD RADOLAN</span></div>
-  <div class="radar-canvas-wrap" id="radarViewport">
+  <div class="radar-canvas-wrap" id="radarViewport" tabindex="0" aria-label="Interaktive Radarkarte. Nutze Pfeiltasten zum Verschieben, Plus/Minus zum Zoomen.">
     <div class="radar-stage" id="radarStage">
       <canvas id="radarCanvas" class="radar"></canvas>
       <div class="radar-markers" id="radarMarkers"></div>
@@ -293,15 +327,30 @@
   </div>
 </div>
 
+<div id="daytabs" class="daytabs"></div>
+
+<div id="chartCard" class="card" style="display:none;">
+  <div class="card-title">Temperaturverlauf <span class="card-sub">Fläche = Streubreite der Modelle</span></div>
+  <canvas id="tempChart" height="180" aria-label="Temperaturverlauf und Regenwahrscheinlichkeit im Tagesverlauf" role="img"></canvas>
+  <div id="tempChartSummary" class="sr-only"></div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<div id="precipCard" class="card" style="display:none;">
+  <div class="card-title">Regenwahrscheinlichkeit <span class="card-sub">Tagesmaximum</span></div>
+  <div id="precipRows"></div>
+</div>
+
 <div id="overviewCard" class="card" style="display:none;">
   <div class="card-title">6-Tage-Übersicht <span class="card-sub">Höchst-/Tiefstwerte im Trend</span></div>
-  <canvas id="daysChart" height="150"></canvas>
+  <canvas id="daysChart" height="150" aria-label="6-Tage-Temperaturtrend" role="img"></canvas>
+  <div id="daysChartSummary" class="sr-only"></div>
   <div id="overviewRows"></div>
 </div>
 
 <div class="footer-note">
   Daten: Open-Meteo (DWD ICON, NOAA GFS, ECMWF IFS) &amp; Bright Sky/DWD (Radar, Warnungen) ·
-  Höchst-/Tiefstwerte = Mittelwert der drei Modelle · v2.1
+  Höchst-/Tiefstwerte = Mittelwert der drei Modelle · v2.2
 </div>
 
 <!-- Standort-Modal -->
@@ -322,7 +371,7 @@
 
 <script>
 // ---------- Konfiguration ----------
-const APP_VERSION = "v2.1";
+const APP_VERSION = "v2.2";
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
@@ -706,6 +755,18 @@ function renderChart() {
     `<div class="legend-item"><span class="legend-swatch" style="background:${m.color}"></span>${m.short}</div>`
   ).join("") + `<div class="legend-item"><span class="legend-swatch" style="background:#5aa8ff"></span>Regen %</div>`;
 
+  const lows = rows.map(r => r.low).filter(v => v != null);
+  const highs = rows.map(r => r.high).filter(v => v != null);
+  const precips = rows.map(r => r.precipAvg).filter(v => v != null);
+  if (lows.length && highs.length) {
+    const minL = Math.round(Math.min(...lows));
+    const maxH = Math.round(Math.max(...highs));
+    const maxP = precips.length ? Math.round(Math.max(...precips)) : 0;
+    const dayLabel = dailyRows[dayIdx] ? (dayIdx === 0 ? "Heute" : fmtWeekday(dailyRows[dayIdx].date)) : "";
+    document.getElementById("tempChartSummary").textContent =
+      `Temperaturverlauf für ${dayLabel}: Tiefstwert ca. ${minL}°C, Höchstwert ca. ${maxH}°C. Maximale Regenwahrscheinlichkeit ${maxP}%.`;
+  }
+
   document.getElementById("chartCard").style.display = "block";
 }
 
@@ -737,6 +798,8 @@ function renderOverview() {
       </span>
     </div>
   `).join("");
+  const summaryText = dailyRows.map(d => `${fmtWeekday(d.date)}: ${Math.round(d.avgMin)}° bis ${Math.round(d.avgMax)}°, Regenwahrscheinlichkeit ${Math.round(d.precip)}%`).join("; ");
+  document.getElementById("daysChartSummary").textContent = `6-Tage-Temperaturtrend: ${summaryText}.`;
   document.getElementById("overviewCard").style.display = "block";
   renderDaysChart();
 }
@@ -1113,6 +1176,18 @@ function clampPan() {
     zoomAt(e.deltaY < 0 ? 1.15 : 1/1.15, e.clientX - rect.left, e.clientY - rect.top);
   }, { passive: false });
 
+  vp.addEventListener("keydown", (e) => {
+    const panStep = 30 / radarView.scale;
+    const rect = vp.getBoundingClientRect();
+    if (e.key === "ArrowLeft") { radarView.tx += panStep; clampPan(); applyRadarTransform(); e.preventDefault(); }
+    else if (e.key === "ArrowRight") { radarView.tx -= panStep; clampPan(); applyRadarTransform(); e.preventDefault(); }
+    else if (e.key === "ArrowUp") { radarView.ty += panStep; clampPan(); applyRadarTransform(); e.preventDefault(); }
+    else if (e.key === "ArrowDown") { radarView.ty -= panStep; clampPan(); applyRadarTransform(); e.preventDefault(); }
+    else if (e.key === "+" || e.key === "=") { zoomAt(1.25, rect.width / 2, rect.height / 2); e.preventDefault(); }
+    else if (e.key === "-" || e.key === "_") { zoomAt(1/1.25, rect.width / 2, rect.height / 2); e.preventDefault(); }
+    else if (e.key === "0" || e.key === "r" || e.key === "R") { resetRadarView(); e.preventDefault(); }
+  });
+
   document.getElementById("radarZoomIn").onclick = () => {
     const rect = vp.getBoundingClientRect();
     zoomAt(1.4, rect.width / 2, rect.height / 2);
@@ -1235,9 +1310,23 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---------- Laden ----------
+function showSkeletons() {
+  document.getElementById("skeletonWrap").style.display = "block";
+  document.getElementById("errorBanner").style.display = "none";
+  ["heroCard", "rainSoonCard", "radarCard", "chartCard", "precipCard", "overviewCard"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+}
+
+function hideSkeletons() {
+  document.getElementById("skeletonWrap").style.display = "none";
+}
+
 async function loadAll() {
   document.getElementById("locName").textContent = current.name;
-  document.getElementById("statusLine").textContent = "Lade Vorhersagen von drei Modellen …";
+  document.getElementById("statusLine").textContent = "Lade Wetterdaten…";
+  showSkeletons();
   dayIdx = 0;
   try {
     const [forecast, extrasRaw, alerts, radar] = await Promise.all([
@@ -1246,6 +1335,7 @@ async function loadAll() {
       fetchAlerts(current),
       fetchRadar(current),
     ]);
+    hideSkeletons();
     processForecast(forecast);
     processExtras(extrasRaw);
     renderWarnings(alerts);
@@ -1257,11 +1347,15 @@ async function loadAll() {
     renderRadar(radar);
     document.getElementById("statusLine").textContent = "";
   } catch (e) {
-    document.getElementById("statusLine").textContent = "Fehler: " + e.message;
+    hideSkeletons();
+    document.getElementById("statusLine").textContent = "";
+    document.getElementById("errorMessage").textContent = "Fehler beim Laden: " + (e.message || "Netzwerkfehler");
+    document.getElementById("errorBanner").style.display = "flex";
   }
 }
 
 document.getElementById("refreshBtn").onclick = loadAll;
+document.getElementById("retryBtn").onclick = loadAll;
 
 // ---------- Theme ----------
 function applyTheme(theme) {
