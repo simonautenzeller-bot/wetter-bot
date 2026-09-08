@@ -101,6 +101,12 @@
   .gauge-label{font-size:12px; color:var(--muted);}
   .gauge-value{font-family:var(--font-display); font-size:16px; font-weight:700;}
 
+  .chart-hover-bar{
+    margin-top:12px; padding:8px 12px; border-radius:10px; background:var(--panel-2);
+    border:1px solid var(--border); font-size:12.5px; color:var(--paper); text-align:center;
+  }
+  .chart-hover-bar b{color:var(--accent);}
+
   .storm-banner{
     margin:0 16px 12px; padding:14px 16px; border-radius:14px; font-size:14px; font-weight:600;
     background:rgba(160,107,255,0.16); border:1.5px solid var(--storm); color:var(--paper);
@@ -287,17 +293,11 @@
     </div>
     <div class="hero-meta">
       <span>Gefühlt <b id="heroFeels">–</b></span>
+      <span>Min / Max <b id="heroMinMax">– / –</b></span>
       <span>Wind <b id="heroWind">–</b></span>
       <span>UV-Index <b id="heroUV">–</b></span>
       <span>Sonne <b id="heroSun">–</b></span>
       <span>Mond <b id="heroMoon">–</b></span>
-    </div>
-  </div>
-  <div class="gauge-wrap">
-    <svg id="gaugeSvg" width="64" height="40" viewBox="0 0 64 40" role="img" aria-label="Modell-Übereinstimmung"></svg>
-    <div>
-      <div class="gauge-label" id="gaugeLabel">Modell-Übereinstimmung</div>
-      <div class="gauge-value" id="gaugeValue">–</div>
     </div>
   </div>
 </div>
@@ -332,6 +332,7 @@
 <div id="chartCard" class="card" style="display:none;">
   <div class="card-title">Temperaturverlauf <span class="card-sub">Fläche = Streubreite der Modelle</span></div>
   <canvas id="tempChart" height="180" aria-label="Temperaturverlauf und Regenwahrscheinlichkeit im Tagesverlauf" role="img"></canvas>
+  <div id="chartHoverBar" class="chart-hover-bar">Tippe oder fahre über das Diagramm für exakte Uhrzeiten &amp; Werte</div>
   <div id="tempChartSummary" class="sr-only"></div>
   <div class="legend" id="legend"></div>
 </div>
@@ -350,7 +351,7 @@
 
 <div class="footer-note">
   Daten: Open-Meteo (DWD ICON, NOAA GFS, ECMWF IFS) &amp; Bright Sky/DWD (Radar, Warnungen) ·
-  Höchst-/Tiefstwerte = Mittelwert der drei Modelle · v2.2
+  Höchst-/Tiefstwerte = Mittelwert der drei Modelle · v2.3
 </div>
 
 <!-- Standort-Modal -->
@@ -371,7 +372,7 @@
 
 <script>
 // ---------- Konfiguration ----------
-const APP_VERSION = "v2.2";
+const APP_VERSION = "v2.3";
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
@@ -592,51 +593,29 @@ function nearestHourRow() {
 // ---------- Rendering ----------
 function renderHero() {
   const row = nearestHourRow();
-  const today = dailyRows[0];
+  const selectedDay = dailyRows[dayIdx] || dailyRows[0];
   if (!row) return;
   const vals = MODELS.map(m => row[m.id]).filter(v => v != null);
   const avg = vals.reduce((a,b)=>a+b,0)/vals.length;
   document.getElementById("heroTemp").textContent = Math.round(avg);
   document.getElementById("heroCond").textContent = WCODE[row.wcode] ?? "–";
   document.getElementById("heroFeels").textContent = extras.feels != null ? Math.round(extras.feels) + "°" : "–";
+  if (selectedDay) {
+    document.getElementById("heroMinMax").textContent = `${Math.round(selectedDay.avgMin)}° / ${Math.round(selectedDay.avgMax)}°`;
+    document.getElementById("heroSun").textContent =
+      (selectedDay.sunrise ? fmtTime(selectedDay.sunrise) : "–") + " / " + (selectedDay.sunset ? fmtTime(selectedDay.sunset) : "–");
+  }
   document.getElementById("heroWind").textContent =
     extras.wind != null ? Math.round(extras.wind) + " km/h" + (extras.gust != null && extras.gust > extras.wind + 10 ? " (Böen " + Math.round(extras.gust) + ")" : "") : "–";
   const heroUVEl = document.getElementById("heroUV");
   heroUVEl.textContent = extras.uv != null ? extras.uv.toFixed(1) : "–";
   heroUVEl.title = extras.uvMax != null ? `Tagesmaximum: ${extras.uvMax.toFixed(1)}` : "";
-  if (today) {
-    document.getElementById("heroSun").textContent =
-      (today.sunrise ? fmtTime(today.sunrise) : "–") + " / " + (today.sunset ? fmtTime(today.sunset) : "–");
-  }
+
   const moon = moonInfo(moonFraction(new Date()));
   document.getElementById("heroMoon").textContent = `${moon.icon} ${moon.name}`;
 
   renderStormRow();
-
-  const spread = row.high - row.low;
-  let label, color;
-  if (spread < 1.5) { label = "Modelle einig"; color = "#7fb37a"; }
-  else if (spread < 3.5) { label = "Leichte Abweichung"; color = "#e0a83e"; }
-  else { label = "Modelle uneinig"; color = "#d3697a"; }
-  document.getElementById("gaugeLabel").textContent = label;
-  document.getElementById("gaugeValue").textContent = spread.toFixed(1) + "°C Spanne";
-  drawGauge(spread, color);
   document.getElementById("heroCard").style.display = "block";
-}
-
-function drawGauge(spread, color) {
-  const svg = document.getElementById("gaugeSvg");
-  const pct = Math.max(0, Math.min(1, 1 - spread / 6)); // 0..6°C -> 100%..0%
-  const cx = 32, cy = 34, r = 26;
-  const startAngle = Math.PI, endAngle = Math.PI - pct * Math.PI;
-  const x1 = cx + r * Math.cos(Math.PI), y1 = cy + r * Math.sin(Math.PI);
-  const x2 = cx + r * Math.cos(0), y2 = cy + r * Math.sin(0);
-  const px = cx + r * Math.cos(endAngle), py = cy + r * Math.sin(endAngle);
-  const largeArc = pct > 0.5 ? 1 : 0;
-  svg.innerHTML = `
-    <path d="M ${x1} ${y1} A ${r} ${r} 0 1 1 ${x2} ${y2}" fill="none" stroke="${cssVar('--border')}" stroke-width="6" stroke-linecap="round"/>
-    <path d="M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${px} ${py}" fill="none" stroke="${color}" stroke-width="6" stroke-linecap="round"/>
-  `;
 }
 
 function renderStormRow() {
@@ -680,6 +659,58 @@ function renderDayTabs() {
   });
 }
 
+// Chart.js Plugin for vertical crosshair guide line and 'Jetzt' indicator
+const chartGuidePlugin = {
+  id: "chartGuide",
+  beforeDraw(chart) {
+    const activeElements = chart.getActiveElements();
+    const { ctx, chartArea, scales } = chart;
+    if (!chartArea || !scales.x) return;
+
+    // Current hour indicator on 'Heute'
+    if (dayIdx === 0 && hourlyRows.length) {
+      const now = new Date();
+      const curHour = now.getHours();
+      const xPos = scales.x.getPixelForValue(curHour);
+      if (xPos >= chartArea.left && xPos <= chartArea.right) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = cssVar("--accent") || "#5b8cff";
+        ctx.lineWidth = 1.5;
+        ctx.moveTo(xPos, chartArea.top);
+        ctx.lineTo(xPos, chartArea.bottom);
+        ctx.stroke();
+
+        ctx.fillStyle = cssVar("--accent") || "#5b8cff";
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(xPos - 18, chartArea.top - 2, 36, 15, 4);
+        else ctx.rect(xPos - 18, chartArea.top - 2, 36, 15);
+        ctx.fill();
+        ctx.font = "bold 9px sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.fillText("JETZT", xPos, chartArea.top + 9);
+        ctx.restore();
+      }
+    }
+
+    // Hover vertical guide line
+    if (activeElements && activeElements.length) {
+      const xPos = activeElements[0].element.x;
+      ctx.save();
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(237, 241, 245, 0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3, 3]);
+      ctx.moveTo(xPos, chartArea.top);
+      ctx.lineTo(xPos, chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+};
+
 function renderChart() {
   const start = dayIdx * 24;
   const rows = hourlyRows.slice(start, start + 24);
@@ -704,6 +735,7 @@ function renderChart() {
       backgroundColor: "transparent",
       fill: false,
       pointRadius: 0,
+      pointHoverRadius: 5,
       tension: 0.3,
       order: 1,
       yAxisID: "y",
@@ -717,6 +749,7 @@ function renderChart() {
       backgroundColor: "rgba(90,168,255,0.08)",
       fill: true,
       pointRadius: 0,
+      pointHoverRadius: 5,
       tension: 0.3,
       order: 2,
       yAxisID: "y1",
@@ -731,11 +764,28 @@ function renderChart() {
     options: {
       responsive: true,
       interaction: { mode: "index", intersect: false },
+      onHover: (event, activeElements) => {
+        const hoverBar = document.getElementById("chartHoverBar");
+        if (!hoverBar) return;
+        if (activeElements && activeElements.length) {
+          const idx = activeElements[0].index;
+          const row = rows[idx];
+          if (row) {
+            const timeStr = fmtHour(row.time);
+            const iconT = row.icon_seamless != null ? Math.round(row.icon_seamless) + "°" : "–";
+            const gfsT = row.gfs_seamless != null ? Math.round(row.gfs_seamless) + "°" : "–";
+            const ecmwfT = row.ecmwf_ifs025 != null ? Math.round(row.ecmwf_ifs025) + "°" : "–";
+            const p = row.precipAvg != null ? Math.round(row.precipAvg) + "%" : "–";
+            hoverBar.innerHTML = `<b>🕒 ${timeStr} Uhr</b> · ICON <b>${iconT}</b> · GFS <b>${gfsT}</b> · ECMWF <b>${ecmwfT}</b> · 💧 <b>${p}</b>`;
+          }
+        }
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
           filter: (item) => item.dataset.label !== "Spanne",
           callbacks: {
+            title: (items) => `🕒 ${items[0].label} Uhr`,
             label: (item) => item.dataset.label === "Regenwahrsch."
               ? `Regenwahrsch.: ${item.formattedValue}%`
               : `${item.dataset.label}: ${item.formattedValue}°C`
@@ -743,11 +793,24 @@ function renderChart() {
         }
       },
       scales: {
-        x: { ticks: { color: cssVar("--muted"), maxTicksLimit: 8 }, grid: { color: cssVar("--border") } },
+        x: {
+          ticks: {
+            color: cssVar("--muted"),
+            font: { size: 11, weight: '600' },
+            callback: function(val, index) {
+              const lbl = this.getLabelForValue(val);
+              return index % 3 === 0 ? lbl : '';
+            }
+          },
+          grid: {
+            color: (context) => (context.index % 3 === 0 ? cssVar("--border") : 'rgba(255,255,255,0.03)'),
+          }
+        },
         y: { position: "left", ticks: { color: cssVar("--muted"), callback: (v) => v + "°" }, grid: { color: cssVar("--border") } },
         y1: { position: "right", min: 0, max: 100, ticks: { color: "#5aa8ff", callback: (v) => v + "%" }, grid: { display: false } }
       }
-    }
+    },
+    plugins: [chartGuidePlugin]
   });
 
   const legend = document.getElementById("legend");
