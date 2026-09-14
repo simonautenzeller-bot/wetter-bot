@@ -101,11 +101,6 @@
   .gauge-label{font-size:12px; color:var(--muted);}
   .gauge-value{font-family:var(--font-display); font-size:16px; font-weight:700;}
 
-  .uv-wrap{margin-top:14px; padding-top:14px; border-top:1px solid var(--border);}
-  .uv-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;}
-  .uv-legend{display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;}
-  .uv-legend-item{display:flex; align-items:center; gap:4px; font-size:10px; color:var(--muted);}
-  .uv-legend-dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
   .meta-icon{opacity:.75; margin-right:2px;}
 
   .rain-today{
@@ -175,13 +170,6 @@
   .legend{display:flex; gap:16px; justify-content:center; margin-top:10px; flex-wrap:wrap;}
   .legend-item{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted);}
   .legend-swatch{width:16px; height:3px; border-radius:2px; display:inline-block;}
-
-  .precip-row{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
-  .precip-row:last-child{margin-bottom:0;}
-  .precip-label{font-size:11px; color:var(--muted); width:60px; flex-shrink:0;}
-  .precip-track{flex:1; background:var(--bg); border-radius:999px; height:8px; overflow:hidden;}
-  .precip-fill{height:100%; border-radius:999px;}
-  .precip-pct{font-size:12px; width:36px; text-align:right;}
 
   .overview-row{
     display:flex; align-items:center; justify-content:space-between; padding:10px 2px;
@@ -321,23 +309,9 @@
       <span><span class="meta-icon" aria-hidden="true">↕️</span>Min / Max <b id="heroMinMax">– / –</b></span>
       <span><span class="meta-icon" aria-hidden="true">💨</span>Wind <b id="heroWind">–</b></span>
       <span><span class="meta-icon" aria-hidden="true">🔆</span>UV-Index <b id="heroUV">–</b></span>
+      <span id="heroPollenRow" style="display:none;"><span class="meta-icon" aria-hidden="true">🌿</span>Pollen <b id="heroPollen">–</b></span>
       <span><span class="meta-icon" aria-hidden="true">☀️</span>Sonne <b id="heroSun">–</b></span>
       <span><span class="meta-icon" aria-hidden="true">🌙</span>Mond <b id="heroMoon">–</b></span>
-    </div>
-  </div>
-  <div class="uv-wrap" id="uvWrap" style="display:none;">
-    <div class="uv-head">
-      <span class="gauge-label">UV-Verlauf heute</span>
-      <span class="gauge-value" id="uvPeakLabel">–</span>
-    </div>
-    <canvas id="uvChart" height="50" aria-label="UV-Index-Verlauf für heute, stündlich" role="img"></canvas>
-    <div id="uvChartSummary" class="sr-only"></div>
-    <div class="uv-legend" aria-hidden="true">
-      <span class="uv-legend-item"><span class="uv-legend-dot" style="background:#3ddc84"></span>Niedrig</span>
-      <span class="uv-legend-item"><span class="uv-legend-dot" style="background:#f5c518"></span>Mäßig</span>
-      <span class="uv-legend-item"><span class="uv-legend-dot" style="background:#f5a623"></span>Hoch</span>
-      <span class="uv-legend-item"><span class="uv-legend-dot" style="background:#ef4565"></span>Sehr hoch</span>
-      <span class="uv-legend-item"><span class="uv-legend-dot" style="background:#a06bff"></span>Extrem</span>
     </div>
   </div>
 </div>
@@ -376,8 +350,8 @@
 <div id="daytabs" class="daytabs"></div>
 
 <div id="chartCard" class="card" style="display:none;">
-  <div class="card-title">Temperaturverlauf <span class="card-sub">Fläche = Streubreite der Modelle</span></div>
-  <canvas id="tempChart" height="180" aria-label="Temperaturverlauf und Regenwahrscheinlichkeit im Tagesverlauf" role="img"></canvas>
+  <div class="card-title">Tagesverlauf <span class="card-sub">Temperatur · Regen · UV-Index</span></div>
+  <canvas id="tempChart" height="200" aria-label="Temperatur-, Regen- und UV-Verlauf im Tagesverlauf" role="img"></canvas>
   <div id="chartHoverBar" class="chart-hover-bar">Tippe oder fahre über das Diagramm für exakte Uhrzeiten &amp; Werte</div>
   <div id="tempChartSummary" class="sr-only"></div>
   <div class="legend" id="legend"></div>
@@ -385,14 +359,7 @@
 
 <div id="overviewCard" class="card" style="display:none;">
   <div class="card-title">6-Tage-Übersicht <span class="card-sub">Höchst-/Tiefstwerte im Trend</span></div>
-  <canvas id="daysChart" height="150" aria-label="6-Tage-Temperaturtrend" role="img"></canvas>
-  <div id="daysChartSummary" class="sr-only"></div>
   <div id="overviewRows"></div>
-</div>
-
-<div id="precipCard" class="card" style="display:none;">
-  <div class="card-title">Regenwahrscheinlichkeit <span class="card-sub" id="precipSub">Modelle</span></div>
-  <div id="precipRows"></div>
 </div>
 
 <div class="footer-note">
@@ -428,9 +395,9 @@ const STORAGE_LOCATIONS = "wetterbot_locations";
 const STORAGE_CURRENT = "wetterbot_current";
 
 const MODELS = [
-  { id: "icon_seamless",  key: "icon_seamless",  label: "DWD ICON",   short: "ICON",  color: "#c98a4b", dash: [] },
-  { id: "gfs_seamless",   key: "gfs_seamless",   label: "GFS (NOAA)", short: "GFS",   color: "#4f9c93", dash: [7,4] },
-  { id: "ecmwf_ifs025",   key: "ecmwf_ifs025",   label: "ECMWF",      short: "ECMWF", color: "#cc6677", dash: [2,3] },
+  { id: "icon_seamless" },
+  { id: "gfs_seamless" },
+  { id: "ecmwf_ifs025" },
 ];
 // Open-Meteo "splitModels": erstes angefragtes Modell kommt UNsuffixiert zurück,
 // alle weiteren mit _<model>-Suffix. Reihenfolge der URL muss dazu passen.
@@ -442,7 +409,6 @@ function fieldFor(varName, modelIndex, modelId) {
 let locations = loadLocations();
 let current = loadCurrent();
 let chart = null;
-let uvChart = null;
 
 function loadLocations() {
   try {
@@ -543,6 +509,20 @@ async function fetchAlerts(loc) {
   }
 }
 
+// Pollenflug via Open-Meteo Air-Quality-API — nur für Europa verfügbar, liefert bei
+// anderen Standorten leere/null-Werte, was processPollen() abfängt.
+async function fetchPollen(loc) {
+  try {
+    const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${loc.lat}&longitude=${loc.lon}` +
+      `&current=birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&timezone=Europe%2FBerlin`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
 async function fetchRadar(loc) {
   try {
     const now = new Date();
@@ -583,6 +563,34 @@ function processExtras(raw) {
   extras.uvHourly = (raw.hourly?.time || []).map((t, i) => ({ time: t, uv: raw.hourly.uv_index?.[i] }));
 }
 
+// Grobe, nicht-klinische Einordnung (grains/m³) für eine Alltagseinschätzung — genug,
+// um zu wissen ob's für den Spielplatzbesuch mit Heuschnupfen relevant ist.
+function pollenLevel(v) {
+  if (v < 10) return { text: "niedrig", color: "var(--good)" };
+  if (v < 50) return { text: "mäßig", color: "var(--warn)" };
+  return { text: "hoch", color: "var(--bad)" };
+}
+
+let pollen = { name: null, level: null };
+
+function processPollen(raw) {
+  pollen = { name: null, level: null };
+  const c = raw?.current;
+  if (!c) return;
+  const species = [
+    { key: "birch_pollen", label: "Birke" },
+    { key: "grass_pollen", label: "Gräser" },
+    { key: "mugwort_pollen", label: "Beifuß" },
+    { key: "ragweed_pollen", label: "Ambrosia" },
+  ];
+  let top = null;
+  species.forEach(s => {
+    const v = c[s.key];
+    if (v != null && (top == null || v > top.value)) top = { name: s.label, value: v };
+  });
+  if (top) pollen = { name: top.name, level: pollenLevel(top.value) };
+}
+
 function processForecast(raw) {
   const times = raw.hourly.time;
   hourlyRows = times.map((t, i) => {
@@ -596,6 +604,7 @@ function processForecast(raw) {
     });
     row.low = Math.min(...vals);
     row.high = Math.max(...vals);
+    row.avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
     row.wcode = raw.hourly[fieldFor("weather_code", 0, MODELS[0].id)]?.[i];
     const precipVals = MODELS.map(m => row[`precip_${m.id}`]).filter(v => v != null);
     row.precipAvg = precipVals.length ? precipVals.reduce((a,b)=>a+b,0)/precipVals.length : null;
@@ -618,10 +627,6 @@ function processForecast(raw) {
       avgMin: minVals.reduce((a,b)=>a+b,0)/minVals.length,
       spreadMax: Math.max(...maxVals) - Math.min(...maxVals),
       precip: Math.max(...precipVals),
-      perModel: MODELS.map((m, mi) => ({
-        model: m,
-        precip: raw.daily[fieldFor("precipitation_probability_max", mi, m.id)]?.[i],
-      })),
       sunrise: raw.daily[fieldFor("sunrise", 0, MODELS[0].id)]?.[i],
       sunset: raw.daily[fieldFor("sunset", 0, MODELS[0].id)]?.[i],
     };
@@ -659,6 +664,16 @@ function renderHero() {
   const heroUVEl = document.getElementById("heroUV");
   heroUVEl.textContent = extras.uv != null ? extras.uv.toFixed(1) : "–";
   heroUVEl.title = extras.uvMax != null ? `Tagesmaximum: ${extras.uvMax.toFixed(1)}` : "";
+
+  const pollenRow = document.getElementById("heroPollenRow");
+  if (pollen.name) {
+    const heroPollenEl = document.getElementById("heroPollen");
+    heroPollenEl.textContent = `${pollen.name} ${pollen.level.text}`;
+    heroPollenEl.style.color = pollen.level.color;
+    pollenRow.style.display = "";
+  } else {
+    pollenRow.style.display = "none";
+  }
 
   const moon = moonInfo(moonFraction(new Date()));
   document.getElementById("heroMoon").textContent = `${moon.icon} ${moon.name}`;
@@ -737,9 +752,7 @@ function selectDay(i) {
   dayIdx = i;
   renderDayTabs();
   renderChart();
-  renderPrecip();
   renderOverview();
-  renderUV();
   renderRainToday();
 }
 
@@ -812,6 +825,11 @@ function renderChart() {
   const rows = hourlyRows.slice(start, start + 24);
   const labels = rows.map(r => fmtHour(r.time));
 
+  // UV-Verlauf nur für heute/morgen verfügbar (extras.uvHourly deckt forecast_days=2 ab)
+  const hasUV = extras.uvHourly.length > 0 && dayIdx <= 1;
+  const uvMap = hasUV ? new Map(extras.uvHourly.map(r => [r.time, r.uv])) : null;
+  const uvValues = hasUV ? rows.map(r => uvMap.get(r.time) ?? null) : [];
+
   const datasets = [
     {
       label: "Spanne",
@@ -822,11 +840,10 @@ function renderChart() {
       order: 3,
       pointRadius: 0,
     },
-    ...MODELS.map((m, idx) => ({
-      label: m.short,
-      data: rows.map(r => r[m.id]),
-      borderColor: m.color,
-      borderDash: m.dash,
+    {
+      label: "Temperatur",
+      data: rows.map(r => r.avg),
+      borderColor: "#c98a4b",
       borderWidth: 2,
       backgroundColor: "transparent",
       fill: false,
@@ -835,7 +852,7 @@ function renderChart() {
       tension: 0.3,
       order: 1,
       yAxisID: "y",
-    })),
+    },
     {
       label: "Regenwahrsch.",
       data: rows.map(r => r.precipAvg),
@@ -851,6 +868,20 @@ function renderChart() {
       yAxisID: "y1",
     },
   ];
+  if (hasUV) {
+    datasets.push({
+      type: "bar",
+      label: "UV-Index",
+      data: uvValues,
+      backgroundColor: uvValues.map(v => uvColor(v)),
+      borderWidth: 0,
+      borderRadius: 2,
+      barPercentage: 1.0,
+      categoryPercentage: 1.0,
+      order: 4,
+      yAxisID: "yUV",
+    });
+  }
 
   const ctx = document.getElementById("tempChart").getContext("2d");
   if (chart) chart.destroy();
@@ -868,11 +899,11 @@ function renderChart() {
           const row = rows[idx];
           if (row) {
             const timeStr = fmtHour(row.time);
-            const iconT = row.icon_seamless != null ? Math.round(row.icon_seamless) + "°" : "–";
-            const gfsT = row.gfs_seamless != null ? Math.round(row.gfs_seamless) + "°" : "–";
-            const ecmwfT = row.ecmwf_ifs025 != null ? Math.round(row.ecmwf_ifs025) + "°" : "–";
+            const avgT = row.avg != null ? Math.round(row.avg) + "°" : "–";
             const p = row.precipAvg != null ? Math.round(row.precipAvg) + "%" : "–";
-            hoverBar.innerHTML = `<b>🕒 ${timeStr} Uhr</b> · ICON <b>${iconT}</b> · GFS <b>${gfsT}</b> · ECMWF <b>${ecmwfT}</b> · 💧 <b>${p}</b>`;
+            const uvVal = hasUV ? uvMap.get(row.time) : null;
+            const uvPart = uvVal != null ? ` · 🔆 <b>${uvVal.toFixed(1)}</b>` : "";
+            hoverBar.innerHTML = `<b>🕒 ${timeStr} Uhr</b> · 🌡️ <b>${avgT}</b> · 💧 <b>${p}</b>${uvPart}`;
           }
         }
       },
@@ -882,9 +913,11 @@ function renderChart() {
           filter: (item) => item.dataset.label !== "Spanne",
           callbacks: {
             title: (items) => `🕒 ${items[0].label} Uhr`,
-            label: (item) => item.dataset.label === "Regenwahrsch."
-              ? `Regenwahrsch.: ${item.formattedValue}%`
-              : `${item.dataset.label}: ${item.formattedValue}°C`
+            label: (item) => {
+              if (item.dataset.label === "Regenwahrsch.") return `Regenwahrsch.: ${item.formattedValue}%`;
+              if (item.dataset.label === "UV-Index") return `UV-Index: ${item.formattedValue}`;
+              return `${item.dataset.label}: ${item.formattedValue}°C`;
+            }
           }
         }
       },
@@ -903,27 +936,32 @@ function renderChart() {
           }
         },
         y: { position: "left", ticks: { color: cssVar("--muted"), callback: (v) => v + "°" }, grid: { color: cssVar("--border") } },
-        y1: { position: "right", min: 0, max: 100, ticks: { color: "#5aa8ff", callback: (v) => v + "%" }, grid: { display: false } }
+        y1: { position: "right", min: 0, max: 100, ticks: { color: "#5aa8ff", callback: (v) => v + "%" }, grid: { display: false } },
+        yUV: { display: false, beginAtZero: true, suggestedMax: 11 }
       }
     },
     plugins: [chartGuidePlugin]
   });
 
   const legend = document.getElementById("legend");
-  legend.innerHTML = MODELS.map(m =>
-    `<div class="legend-item"><span class="legend-swatch" style="background:${m.color}"></span>${m.short}</div>`
-  ).join("") + `<div class="legend-item"><span class="legend-swatch" style="background:#5aa8ff"></span>Regen %</div>`;
+  legend.innerHTML =
+    `<div class="legend-item"><span class="legend-swatch" style="background:#c98a4b"></span>Temperatur</div>` +
+    `<div class="legend-item"><span class="legend-swatch" style="background:#5aa8ff"></span>Regen %</div>` +
+    (hasUV ? `<div class="legend-item"><span class="legend-swatch" style="background:linear-gradient(90deg,#3ddc84,#f5c518,#f5a623,#ef4565,#a06bff)"></span>UV-Index</div>` : "");
 
   const lows = rows.map(r => r.low).filter(v => v != null);
   const highs = rows.map(r => r.high).filter(v => v != null);
   const precips = rows.map(r => r.precipAvg).filter(v => v != null);
+  const uvClean = uvValues.filter(v => v != null);
   if (lows.length && highs.length) {
     const minL = Math.round(Math.min(...lows));
     const maxH = Math.round(Math.max(...highs));
     const maxP = precips.length ? Math.round(Math.max(...precips)) : 0;
+    const uvPeak = uvClean.length ? Math.round(Math.max(...uvClean) * 10) / 10 : null;
     const dayLabel = dailyRows[dayIdx] ? (dayIdx === 0 ? "Heute" : fmtWeekday(dailyRows[dayIdx].date)) : "";
     document.getElementById("tempChartSummary").textContent =
-      `Temperaturverlauf für ${dayLabel}: Tiefstwert ca. ${minL}°C, Höchstwert ca. ${maxH}°C. Maximale Regenwahrscheinlichkeit ${maxP}%.`;
+      `Tagesverlauf für ${dayLabel}: Tiefstwert ca. ${minL}°C, Höchstwert ca. ${maxH}°C, Regenwahrscheinlichkeit bis ${maxP}%` +
+      (uvPeak != null ? `, UV-Index bis ${uvPeak}.` : ".");
   }
 
   document.getElementById("chartCard").style.display = "block";
@@ -938,78 +976,6 @@ function uvColor(v) {
   if (v < 11) return "#ef4565";
   return "#a06bff";
 }
-
-function renderUV() {
-  const wrap = document.getElementById("uvWrap");
-  // extras.uvHourly deckt nur forecast_days=2 ab (heute + morgen)
-  if (dayIdx > 1 || !extras.uvHourly.length || !hourlyRows.length) { wrap.style.display = "none"; return; }
-
-  const uvMap = new Map(extras.uvHourly.map(r => [r.time, r.uv]));
-  const start = dayIdx * 24;
-  const rows = hourlyRows.slice(start, start + 24);
-  const labels = rows.map(r => fmtHour(r.time));
-  const values = rows.map(r => uvMap.get(r.time) ?? null);
-  const curHour = dayIdx === 0 ? new Date().getHours() : -1;
-  const dayLabel = dayIdx === 0 ? "heute" : "morgen";
-
-  document.querySelector("#uvWrap .gauge-label").textContent = `UV-Verlauf ${dayLabel}`;
-  const peak = Math.max(...values.filter(v => v != null), 0);
-  document.getElementById("uvPeakLabel").textContent = `Peak ${peak.toFixed(1)}`;
-  document.getElementById("uvChartSummary").textContent =
-    `UV-Index-Verlauf ${dayLabel}: Tageshöchstwert ${peak.toFixed(1)}.`;
-
-  const ctx = document.getElementById("uvChart").getContext("2d");
-  if (uvChart) uvChart.destroy();
-  uvChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: values.map(v => uvColor(v)),
-        borderColor: rows.map((r, i) => i === curHour ? cssVar("--accent") : "transparent"),
-        borderWidth: rows.map((r, i) => i === curHour ? 2 : 0),
-        borderRadius: 2,
-      }],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: (item) => `UV-Index: ${item.formattedValue}` } }
-      },
-      scales: {
-        x: {
-          ticks: {
-            color: cssVar("--muted"), font: { size: 10 },
-            callback: function(val, index) { return index % 3 === 0 ? this.getLabelForValue(val) : ''; }
-          },
-          grid: { display: false }
-        },
-        y: { display: false, suggestedMax: 11, beginAtZero: true }
-      }
-    }
-  });
-  wrap.style.display = "block";
-}
-
-function renderPrecip() {
-  const day = dailyRows[dayIdx];
-  if (!day) return;
-  const el = document.getElementById("precipRows");
-  const dayLabel = dayIdx === 0 ? "Heute" : fmtWeekday(day.date);
-  document.getElementById("precipSub").textContent = `Modelle · ${dayLabel}`;
-  el.innerHTML = day.perModel.map(({ model, precip }) => `
-    <div class="precip-row">
-      <span class="precip-label">${model.short}</span>
-      <div class="precip-track"><div class="precip-fill" style="width:${precip ?? 0}%; background:${model.color}"></div></div>
-      <span class="precip-pct">${precip ?? "–"}%</span>
-    </div>
-  `).join("");
-  document.getElementById("precipCard").style.display = "block";
-}
-
-let daysChart = null;
 
 function renderOverview() {
   const el = document.getElementById("overviewRows");
@@ -1026,102 +992,7 @@ function renderOverview() {
   el.querySelectorAll("[data-idx]").forEach(btn => {
     btn.onclick = () => selectDay(+btn.dataset.idx);
   });
-  const summaryText = dailyRows.map(d => `${fmtWeekday(d.date)}: ${Math.round(d.avgMin)}° bis ${Math.round(d.avgMax)}°, Regenwahrscheinlichkeit ${Math.round(d.precip)}%`).join("; ");
-  document.getElementById("daysChartSummary").textContent = `6-Tage-Temperaturtrend: ${summaryText}.`;
   document.getElementById("overviewCard").style.display = "block";
-  renderDaysChart();
-}
-
-// Hintergrund-Band, das die aktuell ausgewählte Tages-Spalte hervorhebt
-const dayHighlightPlugin = {
-  id: "dayHighlight",
-  beforeDatasetsDraw(chart) {
-    const { ctx, chartArea, scales } = chart;
-    if (!dailyRows.length) return;
-    const xScale = scales.x;
-    const colWidth = chartArea.width / dailyRows.length;
-    const cx = xScale.getPixelForValue(dayIdx);
-    const bandX = cx - colWidth / 2 + colWidth * 0.08;
-    const bandW = colWidth * 0.84;
-    ctx.save();
-    ctx.fillStyle = "rgba(243,237,225,0.06)";
-    const r = 10;
-    ctx.beginPath();
-    ctx.roundRect(bandX, chartArea.top, bandW, chartArea.height, r);
-    ctx.fill();
-    ctx.restore();
-  }
-};
-
-// Zeigt Höchst-/Tiefstwert direkt über bzw. unter jedem Punkt an
-const dayLabelsPlugin = {
-  id: "dayLabels",
-  afterDatasetsDraw(chart) {
-    const { ctx } = chart;
-    chart.data.datasets.forEach((ds, dsIndex) => {
-      const meta = chart.getDatasetMeta(dsIndex);
-      meta.data.forEach((point, i) => {
-        const value = ds.data[i];
-        if (value == null) return;
-        ctx.save();
-        ctx.font = "600 12px 'Space Grotesk', system-ui, sans-serif";
-        ctx.fillStyle = ds.borderColor;
-        ctx.textAlign = "center";
-        ctx.fillText(Math.round(value) + "°", point.x, point.y + (dsIndex === 0 ? -10 : 18));
-        ctx.restore();
-      });
-    });
-  }
-};
-
-function renderDaysChart() {
-  const ctx = document.getElementById("daysChart").getContext("2d");
-  const labels = dailyRows.map((d, i) => [i === 0 ? "Heute" : fmtWeekday(d.date), fmtDate(d.date)]);
-
-  if (daysChart) daysChart.destroy();
-  daysChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {
-          label: "Höchst",
-          data: dailyRows.map(d => d.avgMax),
-          borderColor: "#c98a4b",
-          backgroundColor: "#c98a4b",
-          borderWidth: 2,
-          pointRadius: 3,
-          pointBackgroundColor: "#c98a4b",
-          tension: 0.35,
-        },
-        {
-          label: "Tiefst",
-          data: dailyRows.map(d => d.avgMin),
-          borderColor: "#7fa9a3",
-          backgroundColor: "#7fa9a3",
-          borderWidth: 2,
-          pointRadius: 3,
-          pointBackgroundColor: "#7fa9a3",
-          tension: 0.35,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      layout: { padding: { top: 22, bottom: 4 } },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: { label: (item) => `${item.dataset.label}: ${Math.round(item.raw)}°C` }
-        }
-      },
-      scales: {
-        x: { ticks: { color: cssVar("--muted"), font: { size: 11 } }, grid: { display: false } },
-        y: { display: false, grid: { display: false } }
-      }
-    },
-    plugins: [dayHighlightPlugin, dayLabelsPlugin],
-  });
 }
 
 function renderWarnings(alerts) {
@@ -1283,11 +1154,11 @@ function renderRainSoon() {
 
   if (!points.length) { card.style.display = "none"; return; }
 
-  const anyRain = points.some(p => p.mm > 0.1);
+  // Karte nur zeigen, wenn in den nächsten 2 Std. tatsächlich Regen ansteht —
+  // sonst deckt der Regen-heute-Banner ("Für den Rest des Tages...") das bereits ab.
   const firstRain = points.find(p => p.mm > 0.1);
-  document.getElementById("rainSoonSub").textContent = anyRain
-    ? `Regen ab ca. ${fmtTime(firstRain.time)} Uhr`
-    : "Kein Niederschlag in den nächsten 2 Std.";
+  if (!firstRain) { card.style.display = "none"; return; }
+  document.getElementById("rainSoonSub").textContent = `Regen ab ca. ${fmtTime(firstRain.time)} Uhr`;
 
   const ctx = document.getElementById("rainSoonChart").getContext("2d");
   if (rainSoonChart) rainSoonChart.destroy();
@@ -1586,7 +1457,7 @@ document.addEventListener("keydown", (e) => {
 function showSkeletons() {
   document.getElementById("skeletonWrap").style.display = "block";
   document.getElementById("errorBanner").style.display = "none";
-  ["heroCard", "rainTodayBanner", "rainSoonCard", "radarCard", "chartCard", "precipCard", "overviewCard"].forEach(id => {
+  ["heroCard", "rainTodayBanner", "rainSoonCard", "radarCard", "chartCard", "overviewCard"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
@@ -1602,22 +1473,22 @@ async function loadAll() {
   showSkeletons();
   dayIdx = 0;
   try {
-    const [forecast, extrasRaw, alerts, radar] = await Promise.all([
+    const [forecast, extrasRaw, alerts, radar, pollenRaw] = await Promise.all([
       fetchForecast(current),
       fetchExtras(current),
       fetchAlerts(current),
       fetchRadar(current),
+      fetchPollen(current),
     ]);
     hideSkeletons();
     processForecast(forecast);
     processExtras(extrasRaw);
+    processPollen(pollenRaw);
     renderWarnings(alerts);
     renderHero();
     renderDayTabs();
     renderChart();
-    renderPrecip();
     renderOverview();
-    renderUV();
     renderRainToday();
     renderRadar(radar);
     document.getElementById("statusLine").textContent = "";
@@ -1647,7 +1518,7 @@ function initTheme() {
     window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
       if (localStorage.getItem("wetterbot_theme")) return; // manuell übersteuert -> Auto-Wechsel ignorieren
       applyTheme(e.matches ? "light" : "dark");
-      if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderUV(); renderRainToday(); }
+      if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderRainToday(); }
     });
   }
 }
@@ -1656,7 +1527,7 @@ document.getElementById("themeToggle").onclick = () => {
   localStorage.setItem("wetterbot_theme", next);
   applyTheme(next);
   // Charts/Gauge nutzen Farben, die zum Zeitpunkt des Zeichnens ausgelesen werden — neu zeichnen:
-  if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderUV(); renderRainToday(); }
+  if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderRainToday(); }
 };
 initTheme();
 
