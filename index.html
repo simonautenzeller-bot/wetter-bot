@@ -269,9 +269,20 @@
     </div>
   </button>
   <div style="display:flex; gap:8px;">
-    <button class="icon-btn" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten">🌙</button>
-    <button class="icon-btn" id="refreshBtn" aria-label="Aktualisieren" title="Aktualisieren">⟳</button>
-    <button class="icon-btn" id="openLocModal" aria-label="Ort wechseln" title="Ort wechseln">📍</button>
+    <button class="icon-btn" id="themeToggle" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel umschalten"></button>
+    <button class="icon-btn" id="refreshBtn" aria-label="Aktualisieren" title="Aktualisieren">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <polyline points="1 20 1 14 7 14"></polyline>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+    </button>
+    <button class="icon-btn" id="openLocModal" aria-label="Ort wechseln" title="Ort wechseln">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3"></circle>
+      </svg>
+    </button>
   </div>
 </div>
 
@@ -1543,9 +1554,12 @@ document.getElementById("refreshBtn").onclick = loadAll;
 document.getElementById("retryBtn").onclick = loadAll;
 
 // ---------- Theme ----------
+const ICON_SUN = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></svg>`;
+const ICON_MOON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>`;
+
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  document.getElementById("themeToggle").textContent = theme === "light" ? "☀️" : "🌙";
+  document.getElementById("themeToggle").innerHTML = theme === "light" ? ICON_SUN : ICON_MOON;
   document.querySelector('meta[name="theme-color"]').setAttribute("content", theme === "light" ? "#f4efe4" : "#1b1712");
 }
 function initTheme() {
