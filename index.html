@@ -108,6 +108,15 @@
   .uv-legend-dot{width:8px; height:8px; border-radius:50%; display:inline-block;}
   .meta-icon{opacity:.75; margin-right:2px;}
 
+  .rain-today{
+    margin:0 16px 14px; padding:14px 16px; border-radius:14px; font-size:14px; font-weight:600;
+    display:flex; align-items:center; gap:10px; color:var(--paper);
+  }
+  .rain-today .rain-today-icon{font-size:18px; flex-shrink:0;}
+  .rain-today.rain{background:rgba(91,140,255,0.14); border:1.5px solid var(--accent);}
+  .rain-today.maybe{background:rgba(154,176,193,0.14); border:1.5px solid var(--muted);}
+  .rain-today.dry{background:rgba(61,220,132,0.12); border:1.5px solid var(--good);}
+
   .chart-hover-bar{
     margin-top:12px; padding:8px 12px; border-radius:10px; background:var(--panel-2);
     border:1px solid var(--border); font-size:12.5px; color:var(--paper); text-align:center;
@@ -331,6 +340,11 @@
       <span class="uv-legend-item"><span class="uv-legend-dot" style="background:#a06bff"></span>Extrem</span>
     </div>
   </div>
+</div>
+
+<div id="rainTodayBanner" class="rain-today" style="display:none;">
+  <span class="rain-today-icon" id="rainTodayIcon" aria-hidden="true">☔</span>
+  <span id="rainTodayText">–</span>
 </div>
 
 <div id="rainSoonCard" class="card" style="display:none;">
@@ -682,6 +696,43 @@ function renderStormRow() {
   }
 }
 
+// Fasst die Regenwahrscheinlichkeit des RESTLICHEN Tages (ab jetzt) in einem Satz zusammen —
+// ergänzt die "Nächste 2 Stunden"-Karte (Radar-Nowcast, nur +2h). Bewusst nur der Blick
+// nach vorn: das Tagesmaximum weiter unten kann auch schon vergangene Stunden einschließen
+// (z.B. Regen heute Nacht), das würde hier sonst fälschlich "Regen wahrscheinlich" anzeigen.
+function renderRainToday() {
+  const el = document.getElementById("rainTodayBanner");
+  if (dayIdx !== 0 || !hourlyRows.length) { el.style.display = "none"; return; }
+
+  const HIGH = 50, LOW = 20;
+  const now = Date.now();
+  const curHour = new Date().getHours();
+  const rows = hourlyRows.slice(0, 24).filter(r => new Date(r.time).getTime() >= now - 30 * 60 * 1000);
+  if (!rows.length) { el.style.display = "none"; return; }
+
+  const highRow = rows.find(r => (r.precipAvg ?? 0) >= HIGH);
+  const maxPrecip = Math.max(...rows.map(r => r.precipAvg ?? 0));
+  const icon = document.getElementById("rainTodayIcon");
+  const text = document.getElementById("rainTodayText");
+
+  if (highRow) {
+    const rowHour = new Date(highRow.time).getHours();
+    const when = rowHour <= curHour ? "aktuell" : `ab ${fmtHour(highRow.time)} Uhr`;
+    el.className = "rain-today rain";
+    icon.textContent = "☔";
+    text.textContent = `Regen ${when} wahrscheinlich (bis ${Math.round(maxPrecip)}%)`;
+  } else if (maxPrecip >= LOW) {
+    el.className = "rain-today maybe";
+    icon.textContent = "🌦️";
+    text.textContent = `Im weiteren Tagesverlauf vereinzelt Regen möglich (bis ${Math.round(maxPrecip)}%)`;
+  } else {
+    el.className = "rain-today dry";
+    icon.textContent = "🌤️";
+    text.textContent = "Für den Rest des Tages kein Regen erwartet";
+  }
+  el.style.display = "flex";
+}
+
 function selectDay(i) {
   dayIdx = i;
   renderDayTabs();
@@ -689,6 +740,7 @@ function selectDay(i) {
   renderPrecip();
   renderOverview();
   renderUV();
+  renderRainToday();
 }
 
 function renderDayTabs() {
@@ -889,18 +941,22 @@ function uvColor(v) {
 
 function renderUV() {
   const wrap = document.getElementById("uvWrap");
-  if (dayIdx !== 0 || !extras.uvHourly.length || !hourlyRows.length) { wrap.style.display = "none"; return; }
+  // extras.uvHourly deckt nur forecast_days=2 ab (heute + morgen)
+  if (dayIdx > 1 || !extras.uvHourly.length || !hourlyRows.length) { wrap.style.display = "none"; return; }
 
   const uvMap = new Map(extras.uvHourly.map(r => [r.time, r.uv]));
-  const rows = hourlyRows.slice(0, 24);
+  const start = dayIdx * 24;
+  const rows = hourlyRows.slice(start, start + 24);
   const labels = rows.map(r => fmtHour(r.time));
   const values = rows.map(r => uvMap.get(r.time) ?? null);
-  const curHour = new Date().getHours();
+  const curHour = dayIdx === 0 ? new Date().getHours() : -1;
+  const dayLabel = dayIdx === 0 ? "heute" : "morgen";
 
+  document.querySelector("#uvWrap .gauge-label").textContent = `UV-Verlauf ${dayLabel}`;
   const peak = Math.max(...values.filter(v => v != null), 0);
   document.getElementById("uvPeakLabel").textContent = `Peak ${peak.toFixed(1)}`;
   document.getElementById("uvChartSummary").textContent =
-    `UV-Index-Verlauf heute: Tageshöchstwert ${peak.toFixed(1)}.`;
+    `UV-Index-Verlauf ${dayLabel}: Tageshöchstwert ${peak.toFixed(1)}.`;
 
   const ctx = document.getElementById("uvChart").getContext("2d");
   if (uvChart) uvChart.destroy();
@@ -1231,7 +1287,7 @@ function renderRainSoon() {
   const firstRain = points.find(p => p.mm > 0.1);
   document.getElementById("rainSoonSub").textContent = anyRain
     ? `Regen ab ca. ${fmtTime(firstRain.time)} Uhr`
-    : "Kein Niederschlag erwartet";
+    : "Kein Niederschlag in den nächsten 2 Std.";
 
   const ctx = document.getElementById("rainSoonChart").getContext("2d");
   if (rainSoonChart) rainSoonChart.destroy();
@@ -1530,7 +1586,7 @@ document.addEventListener("keydown", (e) => {
 function showSkeletons() {
   document.getElementById("skeletonWrap").style.display = "block";
   document.getElementById("errorBanner").style.display = "none";
-  ["heroCard", "rainSoonCard", "radarCard", "chartCard", "precipCard", "overviewCard"].forEach(id => {
+  ["heroCard", "rainTodayBanner", "rainSoonCard", "radarCard", "chartCard", "precipCard", "overviewCard"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
@@ -1562,6 +1618,7 @@ async function loadAll() {
     renderPrecip();
     renderOverview();
     renderUV();
+    renderRainToday();
     renderRadar(radar);
     document.getElementById("statusLine").textContent = "";
   } catch (e) {
@@ -1590,7 +1647,7 @@ function initTheme() {
     window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
       if (localStorage.getItem("wetterbot_theme")) return; // manuell übersteuert -> Auto-Wechsel ignorieren
       applyTheme(e.matches ? "light" : "dark");
-      if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderUV(); }
+      if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderUV(); renderRainToday(); }
     });
   }
 }
@@ -1599,7 +1656,7 @@ document.getElementById("themeToggle").onclick = () => {
   localStorage.setItem("wetterbot_theme", next);
   applyTheme(next);
   // Charts/Gauge nutzen Farben, die zum Zeitpunkt des Zeichnens ausgelesen werden — neu zeichnen:
-  if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderUV(); }
+  if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderUV(); renderRainToday(); }
 };
 initTheme();
 
