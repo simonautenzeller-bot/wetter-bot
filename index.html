@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="appletouchicon.png">
 <link rel="icon" href="icon192.png">
-<title>Wetter — Modellvergleich</title>
+<title>Wetter-Bot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -88,8 +88,12 @@
     margin:0 16px 14px; padding:18px; border-radius:var(--radius);
     background:var(--panel); border:1px solid var(--border);
   }
-  .card-title{font-size:13px; font-weight:600; color:var(--paper); margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;}
-  .card-sub{font-size:11px; color:var(--muted); font-weight:400;}
+  .card-title{font-size:13px; font-weight:600; color:var(--paper); margin-bottom:10px; display:flex; align-items:center; gap:8px;}
+  .card-sub{font-size:11px; color:var(--muted); font-weight:400; margin-left:auto;}
+
+  .accordion-toggle{background:none; border:none; padding:0; margin:0 0 10px; width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer;}
+  .chevron{flex-shrink:0; transition:transform .2s; color:var(--muted); font-size:14px; line-height:1;}
+  .accordion-toggle[aria-expanded="false"] .chevron{transform:rotate(-90deg);}
 
   .hero{display:flex; align-items:center; justify-content:space-between; gap:12px;}
   .hero-temp{font-family:var(--font-display); font-size:64px; font-weight:700; line-height:1;}
@@ -260,7 +264,7 @@
 <div class="app-header">
   <button class="loc-btn" id="locBtn" aria-label="Ort wechseln">
     <div>
-      <div class="loc-eyebrow">Modellvergleich</div>
+      <div class="loc-eyebrow">Wetter-Bot</div>
       <div class="loc-name" id="locName">–</div>
     </div>
   </button>
@@ -327,39 +331,54 @@
 </div>
 
 <div id="radarCard" class="card" style="display:none;">
-  <div class="card-title">Regenradar <span class="card-sub" id="radarSubtitle">DWD RADOLAN</span></div>
-  <div class="radar-canvas-wrap" id="radarViewport" tabindex="0" aria-label="Interaktive Radarkarte. Nutze Pfeiltasten zum Verschieben, Plus/Minus zum Zoomen.">
-    <div class="radar-stage" id="radarStage">
-      <canvas id="radarCanvas" class="radar"></canvas>
-      <div class="radar-markers" id="radarMarkers"></div>
+  <button type="button" class="card-title accordion-toggle" aria-expanded="true" aria-controls="radarBody">
+    <span>Regenradar <span class="card-sub" id="radarSubtitle">DWD RADOLAN</span></span>
+    <span class="chevron" aria-hidden="true">⌄</span>
+  </button>
+  <div class="accordion-body" id="radarBody">
+    <div class="radar-canvas-wrap" id="radarViewport" tabindex="0" aria-label="Interaktive Radarkarte. Nutze Pfeiltasten zum Verschieben, Plus/Minus zum Zoomen.">
+      <div class="radar-stage" id="radarStage">
+        <canvas id="radarCanvas" class="radar"></canvas>
+        <div class="radar-markers" id="radarMarkers"></div>
+      </div>
     </div>
-  </div>
-  <div class="radar-zoom-controls">
-    <button class="icon-btn" id="radarZoomOut" aria-label="Rauszoomen" title="Rauszoomen">–</button>
-    <button class="icon-btn" id="radarZoomReset" aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen">⤾</button>
-    <button class="icon-btn" id="radarZoomIn" aria-label="Reinzoomen" title="Reinzoomen">+</button>
-  </div>
-  <div class="radar-time" id="radarTime"></div>
-  <div class="radar-controls">
-    <button class="icon-btn" id="radarPlayBtn" aria-label="Abspielen" title="Abspielen">▶</button>
-    <input type="range" id="radarSlider" class="radar-slider" min="0" max="0" value="0" step="1" aria-label="Zeitpunkt im Regenradar">
-    <button class="icon-btn" id="radarNowBtn" aria-label="Zum aktuellen Zeitpunkt springen" title="Jetzt">⦿</button>
+    <div class="radar-zoom-controls">
+      <button class="icon-btn" id="radarZoomOut" aria-label="Rauszoomen" title="Rauszoomen">–</button>
+      <button class="icon-btn" id="radarZoomReset" aria-label="Ansicht zurücksetzen" title="Ansicht zurücksetzen">⤾</button>
+      <button class="icon-btn" id="radarZoomIn" aria-label="Reinzoomen" title="Reinzoomen">+</button>
+    </div>
+    <div class="radar-time" id="radarTime"></div>
+    <div class="radar-controls">
+      <button class="icon-btn" id="radarPlayBtn" aria-label="Abspielen" title="Abspielen">▶</button>
+      <input type="range" id="radarSlider" class="radar-slider" min="0" max="0" value="0" step="1" aria-label="Zeitpunkt im Regenradar">
+      <button class="icon-btn" id="radarNowBtn" aria-label="Zum aktuellen Zeitpunkt springen" title="Jetzt">⦿</button>
+    </div>
   </div>
 </div>
 
 <div id="daytabs" class="daytabs"></div>
 
 <div id="chartCard" class="card" style="display:none;">
-  <div class="card-title">Tagesverlauf <span class="card-sub">Temperatur · Regen · UV-Index</span></div>
-  <canvas id="tempChart" height="200" aria-label="Temperatur-, Regen- und UV-Verlauf im Tagesverlauf" role="img"></canvas>
-  <div id="chartHoverBar" class="chart-hover-bar">Tippe oder fahre über das Diagramm für exakte Uhrzeiten &amp; Werte</div>
-  <div id="tempChartSummary" class="sr-only"></div>
-  <div class="legend" id="legend"></div>
+  <button type="button" class="card-title accordion-toggle" aria-expanded="true" aria-controls="chartBody">
+    <span>Tagesverlauf <span class="card-sub">Temperatur · Regen · UV-Index</span></span>
+    <span class="chevron" aria-hidden="true">⌄</span>
+  </button>
+  <div class="accordion-body" id="chartBody">
+    <canvas id="tempChart" height="200" aria-label="Temperatur-, Regen- und UV-Verlauf im Tagesverlauf" role="img"></canvas>
+    <div id="chartHoverBar" class="chart-hover-bar">Tippe oder fahre über das Diagramm für exakte Uhrzeiten &amp; Werte</div>
+    <div id="tempChartSummary" class="sr-only"></div>
+    <div class="legend" id="legend"></div>
+  </div>
 </div>
 
 <div id="overviewCard" class="card" style="display:none;">
-  <div class="card-title">6-Tage-Übersicht <span class="card-sub">Höchst-/Tiefstwerte im Trend</span></div>
-  <div id="overviewRows"></div>
+  <button type="button" class="card-title accordion-toggle" aria-expanded="true" aria-controls="overviewBody">
+    <span>6-Tage-Übersicht <span class="card-sub">Höchst-/Tiefstwerte im Trend</span></span>
+    <span class="chevron" aria-hidden="true">⌄</span>
+  </button>
+  <div class="accordion-body" id="overviewBody">
+    <div id="overviewRows"></div>
+  </div>
 </div>
 
 <div class="footer-note">
@@ -857,10 +876,8 @@ function renderChart() {
       label: "Regenwahrsch.",
       data: rows.map(r => r.precipAvg),
       borderColor: "#5aa8ff",
-      borderWidth: 2,
-      borderDash: [1, 3],
-      backgroundColor: "rgba(90,168,255,0.08)",
-      fill: true,
+      borderWidth: 3,
+      fill: false,
       pointRadius: 0,
       pointHoverRadius: 5,
       tension: 0.3,
@@ -873,9 +890,12 @@ function renderChart() {
       type: "bar",
       label: "UV-Index",
       data: uvValues,
-      backgroundColor: uvValues.map(v => uvColor(v)),
-      borderWidth: 0,
-      borderRadius: 2,
+      // Nur dünner, farbiger Rand statt Vollfläche — sonst verdeckt der UV-Balken
+      // die Regenkurve, die im unteren Chartbereich verläuft.
+      backgroundColor: uvValues.map(v => rgba(uvColorRGB(v), 0.12)),
+      borderColor: uvValues.map(v => rgba(uvColorRGB(v), 0.9)),
+      borderWidth: 1.5,
+      borderSkipped: false,
       barPercentage: 1.0,
       categoryPercentage: 1.0,
       order: 4,
@@ -968,14 +988,15 @@ function renderChart() {
 }
 
 // WHO-UV-Skala: 0-2 niedrig, 3-5 mäßig, 6-7 hoch, 8-10 sehr hoch, 11+ extrem
-function uvColor(v) {
-  if (v == null) return "rgba(154,176,193,0.25)";
-  if (v < 3) return "#3ddc84";
-  if (v < 6) return "#f5c518";
-  if (v < 8) return "#f5a623";
-  if (v < 11) return "#ef4565";
-  return "#a06bff";
+function uvColorRGB(v) {
+  if (v == null) return [154, 176, 193];
+  if (v < 3) return [61, 220, 132];
+  if (v < 6) return [245, 197, 24];
+  if (v < 8) return [245, 166, 35];
+  if (v < 11) return [239, 69, 101];
+  return [160, 107, 255];
 }
+function rgba(rgb, a) { return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${a})`; }
 
 function renderOverview() {
   const el = document.getElementById("overviewRows");
@@ -1530,6 +1551,21 @@ document.getElementById("themeToggle").onclick = () => {
   if (hourlyRows.length) { renderHero(); renderChart(); renderOverview(); renderRainToday(); }
 };
 initTheme();
+
+// ---------- Accordion (Regenradar / Tagesverlauf / 6-Tage-Übersicht) ----------
+document.querySelectorAll(".accordion-toggle").forEach(btn => {
+  btn.onclick = () => {
+    const body = document.getElementById(btn.getAttribute("aria-controls"));
+    const nowExpanded = btn.getAttribute("aria-expanded") !== "true";
+    btn.setAttribute("aria-expanded", String(nowExpanded));
+    body.hidden = !nowExpanded;
+    // Jeder Accordion-Klick verschiebt das Layout (auch bei anderen Sections) —
+    // Chart.js' ResizeObserver kann dabei eine falsche Zwischengröße einfangen und
+    // das Tagesverlauf-Chart verzerrt zurücklassen. chart.resize() reicht dafür
+    // nicht zuverlässig aus — komplett neu rendern behebt es sauber.
+    if (hourlyRows.length) requestAnimationFrame(() => renderChart());
+  };
+});
 
 // ---------- Start ----------
 if (!locations.some(l => l.name === current.name)) {
