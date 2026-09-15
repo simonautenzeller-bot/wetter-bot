@@ -18,6 +18,7 @@
 <style>
   :root{
     --bg:#0f141b;
+    --page-bg:var(--bg);
     --panel:#171f29;
     --panel-2:#1d2733;
     --border:#2b3644;
@@ -36,6 +37,7 @@
   }
   html[data-theme="light"]{
     --bg:#f2f5f8;
+    --page-bg:var(--bg);
     --panel:#ffffff;
     --panel-2:#eaeff4;
     --border:#dde3ea;
@@ -49,11 +51,32 @@
     --bad:#c23855;
     --storm:#7a3fe0;
   }
+  /* Dim: Karten/Kacheln bleiben dunkel (erben von :root), nur der Seitenhintergrund
+     wird auf ein mittleres Grau angehoben — wie im Dim-Modus der Finanzen-App. */
+  html[data-theme="dim"]{
+    --page-bg:#3b4252;
+  }
+  /* Sky: gleiche dunkle Kacheln, aber freundlicher hellblauer Seitenhintergrund.
+     Texte, die direkt (ohne Karte) auf dem Hintergrund liegen, brauchen dafür
+     eine dunkle statt helle Schriftfarbe. */
+  html[data-theme="sky"]{
+    --page-bg:#9dd0f5;
+  }
+  html[data-theme="sky"] .loc-name,
+  html[data-theme="sky"] .loc-eyebrow,
+  html[data-theme="sky"] .status-line,
+  html[data-theme="sky"] .footer-note,
+  html[data-theme="sky"] .rain-today{
+    color:var(--bg);
+  }
+  html[data-theme="sky"] .rain-today.rain{background:rgba(255,255,255,0.55);}
+  html[data-theme="sky"] .rain-today.maybe{background:rgba(255,255,255,0.5);}
+  html[data-theme="sky"] .rain-today.dry{background:rgba(255,255,255,0.55);}
   @media (prefers-reduced-motion: reduce){
     *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0; background:var(--bg); color:var(--paper); font-family:var(--font-body); transition:background .2s, color .2s;}
+  html,body{margin:0; padding:0; background:var(--page-bg); color:var(--paper); font-family:var(--font-body); transition:background .2s, color .2s;}
   body{padding-bottom:48px;}
   h1,h2,h3{font-family:var(--font-display); margin:0;}
   button{font-family:var(--font-body); cursor:pointer;}
@@ -1554,18 +1577,35 @@ document.getElementById("refreshBtn").onclick = loadAll;
 document.getElementById("retryBtn").onclick = loadAll;
 
 // ---------- Theme ----------
+// Vier Modi im Kreis: dark -> dim -> sky -> light -> dark. Dim/Sky behalten die
+// dunkle Kachel-Palette (erben von :root) und hellen nur den Seitenhintergrund
+// (--page-bg) auf — analog zum Dim-Modus der Finanzen-App.
 const ICON_SUN = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></svg>`;
 const ICON_MOON = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z"/></svg>`;
+const ICON_DIM = `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/></svg>`;
+const ICON_SKY = `<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/></svg>`;
+
+const THEME_ORDER = ["dark", "dim", "sky", "light"];
+const THEME_META = {
+  dark:  { icon: ICON_MOON, color: "#1b1712", nextLabel: "Dim-Modus aktivieren" },
+  dim:   { icon: ICON_DIM,  color: "#3b4252", nextLabel: "Sonnigen Modus aktivieren" },
+  sky:   { icon: ICON_SKY,  color: "#9dd0f5", nextLabel: "Hellen Modus aktivieren" },
+  light: { icon: ICON_SUN,  color: "#f4efe4", nextLabel: "Dunklen Modus aktivieren" },
+};
 
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  document.getElementById("themeToggle").innerHTML = theme === "light" ? ICON_SUN : ICON_MOON;
-  document.querySelector('meta[name="theme-color"]').setAttribute("content", theme === "light" ? "#f4efe4" : "#1b1712");
+  const meta = THEME_META[theme] || THEME_META.dark;
+  const btn = document.getElementById("themeToggle");
+  btn.innerHTML = meta.icon;
+  btn.title = meta.nextLabel;
+  btn.setAttribute("aria-label", meta.nextLabel);
+  document.querySelector('meta[name="theme-color"]').setAttribute("content", meta.color);
 }
 function initTheme() {
   const saved = localStorage.getItem("wetterbot_theme");
   const systemLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-  applyTheme(saved || (systemLight ? "light" : "dark"));
+  applyTheme(saved && THEME_ORDER.includes(saved) ? saved : (systemLight ? "light" : "dark"));
 
   if (!saved && window.matchMedia) {
     window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", (e) => {
@@ -1576,7 +1616,8 @@ function initTheme() {
   }
 }
 document.getElementById("themeToggle").onclick = () => {
-  const next = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+  const idx = THEME_ORDER.indexOf(document.documentElement.getAttribute("data-theme"));
+  const next = THEME_ORDER[(idx + 1) % THEME_ORDER.length];
   localStorage.setItem("wetterbot_theme", next);
   applyTheme(next);
   // Charts/Gauge nutzen Farben, die zum Zeitpunkt des Zeichnens ausgelesen werden — neu zeichnen:
